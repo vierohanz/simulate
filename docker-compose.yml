@@ -1,0 +1,62 @@
+version: "3.8"
+services:
+  frontend:
+    build:
+      context: ./SIELIT_Web_Frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80" # Port 3000 untuk frontend
+    volumes:
+      - ./SIELIT_Web_Frontend:/app # Memudahkan debugging di development
+    networks:
+      - sielit_network
+
+  backend:
+    build:
+      context: ./SIELIT_BE
+      dockerfile: Dockerfile
+    ports:
+      - "4001:4001" # Port backend sesuai konfigurasi
+    volumes:
+      - ./SIELIT_BE:/app
+      - ./SIELIT_BE/public/uploads:/app/public/uploads
+    environment:
+      - NODE_ENV=development
+      - dbHost=db
+      - dbUser=root
+      - dbPassword=root
+      - dbName=si_elit
+      - mqttBrokerHost=mqtt://mqtt-broker:1883
+    depends_on:
+      - db
+      - mqtt-broker
+    networks:
+      - sielit_network
+
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: si_elit
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - sielit_network
+
+  mqtt-broker:
+    image: eclipse-mosquitto:latest
+    restart: always
+    ports:
+      - "1883:1883"
+    networks:
+      - sielit_network
+
+networks:
+  sielit_network:
+    driver: bridge
+
+volumes:
+  db_data:
